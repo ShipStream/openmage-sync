@@ -1,0 +1,3 @@
+app/code/community/ShipStream/Sync
+app/etc/modules/ShipStream_Sync.xml
+app/locale/en_US/ShipStream_Sync.csv

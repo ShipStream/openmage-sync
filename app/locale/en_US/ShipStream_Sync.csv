@@ -1,0 +1,8 @@
+"Cannot load the stock item for the product with ""%s"" SKU.","Cannot load the stock item for the product with ""%s"" SKU."
+"The warehouse API URL is required.","The warehouse API URL is required."
+"The warehouse API URL format is not valid.","The warehouse API URL format is not valid."
+"Response error code: ""%s"". Error description: ""%s"".","Response error code: ""%s"". Error description: ""%s""."
+"Cannot get cURL response code.","Cannot get cURL response code."
+"An error occurred while decoding JSON encoded string.","An error occurred while decoding JSON encoded string."
+"cURL is not installed.","cURL is not installed."
+"Invalid custom request type.","Invalid custom request type."

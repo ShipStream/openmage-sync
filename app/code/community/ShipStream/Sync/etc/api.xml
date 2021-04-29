@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<config>
+    <api>
+        <resources>
+            <shipstream_stock_item translate="title" module="shipstream">
+                <model>shipstream/stock_item_api</model>
+                <title>ShipStream Sync Inventory API</title>
+                <acl>shipstream</acl>
+                <methods>
+                    <adjust translate="title" module="shipstream">
+                        <title>Update product inventory</title>
+                        <acl>shipstream</acl>
+                    </adjust>
+                </methods>
+                <faults module="shipstream">
+                    <not_exists>
+                        <code>101</code>
+                        <message>Product not exists.</message>
+                    </not_exists>
+                    <not_updated>
+                        <code>102</code>
+                        <message>Product inventory not updated. Details in error message.</message>
+                    </not_updated>
+                </faults>
+            </shipstream_stock_item>
+            <shipstream_order_shipment translate="title" module="shipstream">
+                <title>Shipment API</title>
+                <model>shipstream/order_shipment_api</model>
+                <acl>shipstream</acl>
+                <methods>
+                    <info translate="title" module="shipstream">
+                        <title>Retrieve shipment information</title>
+                        <acl>shipstream</acl>
+                    </info>
+                </methods>
+                <faults module="shipstream">
+                    <not_exists>
+                        <code>100</code>
+                        <message>Requested shipment not exists.</message>
+                    </not_exists>
+                </faults>
+            </shipstream_order_shipment>
+            <shipstream translate="title" module="shipstream">
+                <title>Config</title>
+                <model>shipstream/api</model>
+                <acl>shipstream</acl>
+                <methods>
+                    <set_config translate="title" module="shipstream">
+                        <title>Set ShipStream module config value</title>
+                        <acl>shipstream</acl>
+                    </set_config>
+                    <sync_inventory translate="title" module="shipstream">
+                        <title>Trigger an inventory sync</title>
+                        <acl>shipstream</acl>
+                    </sync_inventory>
+                </methods>
+            </shipstream>
+        </resources>
+        <acl>
+            <resources>
+                <shipstream translate="title" module="shipstream">
+                    <title>ShipStream Sync</title>
+                    <sort_order>999999</sort_order>
+                </shipstream>
+            </resources>
+        </acl>
+    </api>
+</config>

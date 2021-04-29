@@ -1,0 +1,11 @@
+tables:
+  plugin/subscription:
+    -
+      subscription_id: 1
+      plugin_code: "ShipStream_Sync"
+      website_id: 1
+      is_active: 1
+      secret_key: "53929d41bea6bdcef36e5fca9eb02cb9b9ee2cb8"
+      config: "<config><auto_fulfill/><sync_orders_since/></config>"
+      created_at: "2017-01-13 17:14:34"
+      updated_at: "2017-01-13 17:14:34"

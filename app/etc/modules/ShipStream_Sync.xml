@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <ShipStream_Sync>
+            <codePool>community</codePool>
+            <active>true</active>
+            <depends>
+                <Mage_CatalogInventory/>
+            </depends>
+        </ShipStream_Sync>
+    </modules>
+</config>

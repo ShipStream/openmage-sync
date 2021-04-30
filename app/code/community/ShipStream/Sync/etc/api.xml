@@ -32,12 +32,24 @@
                         <title>Retrieve shipment information</title>
                         <acl>shipstream</acl>
                     </info>
+                    <createWithTracking translate="title" module="shipstream">
+                        <title>Create shipment from ShipStream data</title>
+                        <acl>shipstream</acl>
+                    </createWithTracking>
                 </methods>
                 <faults module="shipstream">
                     <not_exists>
                         <code>100</code>
                         <message>Requested shipment not exists.</message>
                     </not_exists>
+                    <data_invalid>
+                        <code>102</code>
+                        <message>Invalid data given. Details in error message</message>
+                    </data_invalid>
+                    <order_not_exists>
+                        <code>103</code>
+                        <message>Requested order does not exist</message>
+                    </order_not_exists>
                 </faults>
             </shipstream_order_shipment>
             <shipstream translate="title" module="shipstream">

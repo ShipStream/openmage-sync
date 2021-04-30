@@ -2,6 +2,8 @@
 
 class ShipStream_Sync_Model_Cron
 {
+    const LOG_FILE = 'shipstream_cron.log';
+
     /**
      * Synchronize Magento inventory with the warehouse inventory
      *
@@ -16,6 +18,7 @@ class ShipStream_Sync_Model_Cron
         if ($sleep) {
             sleep(random_int(0, 60)); // Avoid stampeding the server
         }
+        Mage::log('Beginning inventory sync.', Zend_Log::DEBUG, self::LOG_FILE);
         $resource = Mage::getSingleton('core/resource');
         $db = $resource->getConnection('core_write'); /** @var $db Magento_Db_Adapter_Pdo_Mysql */
         $_source = $this->_getSourceInventory();
@@ -28,6 +31,7 @@ class ShipStream_Sync_Model_Cron
                         foreach ($source as $sku => $qty) {
                             if ( ! isset($target[$sku])) continue;
                             if (floatval($qty) === floatval($target[$sku]['qty'])) continue;
+                            Mage::log("SKU: $sku remote qty is $qty and local is {$target[$sku]['qty']}", Zend_Log::DEBUG, self::LOG_FILE);
                             $stockItem = Mage::getModel('cataloginventory/stock_item')->load($target[$sku]['stock_item_id']); /** @var $stockItem Mage_CatalogInventory_Model_Stock_Item */
                             if ( ! $stockItem->getId()) {
                                 throw new Mage_Core_Exception(Mage::helper('shipstream')->__('Cannot load the stock item for the product with "%s" SKU.', $sku));
@@ -85,6 +89,9 @@ class ShipStream_Sync_Model_Cron
             ->join(['si' => $resource->getTableName('cataloginventory/stock_item')], 'p.entity_id = si.product_id', [])
             ->where('si.stock_id = ?', Mage_CatalogInventory_Model_Stock::DEFAULT_STOCK_ID)
             ->where('p.sku IN (?)', $skus);
+
+        // TODO - subtract processing that is not "submitted"
+
         return $db->fetchAssoc($select);
     }
 }

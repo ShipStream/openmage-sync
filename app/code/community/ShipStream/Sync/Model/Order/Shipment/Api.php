@@ -46,4 +46,82 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
 
         return $result;
     }
+
+    /**
+     * @param $orderIncrementId
+     * @param $data
+     * @return string|null
+     * @throws Mage_Api_Exception
+     * @throws Mage_Core_Exception
+     */
+    public function createWithTracking($orderIncrementId, $data)
+    {
+        $order = Mage::getModel('sales/order')->loadByIncrementId($orderIncrementId);
+        if ( ! $order->getId()) {
+            $this->_fault('order_not_exists');
+        }
+        if ( ! $order->canShip()) {
+            $this->_fault('data_invalid', Mage::helper('sales')->__('Cannot do shipment for order.'));
+        }
+
+        $itemsQty = [];
+        // TODO - use payload data to create only shipped items
+
+        $comments = [];
+        // TODO - add all relevant information to comments (e.g. serial numbers, etc.)
+
+        $tracks = [];
+        $carriers = $this->_getCarriers($order);
+        foreach ($data['packages'] as $package) {
+            $carrier = $package['carrier'];
+            if (!isset($carriers[$carrier])) {
+                $carrier = 'custom';
+                $title = $package['service']; // TODO - need service_name
+            } else {
+                $title = $carriers[$carrier];
+            }
+            foreach ($package['tracking_numbers'] as $trackingNumber) {
+                $tracks[] = Mage::getModel('sales/order_shipment_track')
+                    ->setNumber($trackingNumber)
+                    ->setCarrierCode($carrier)
+                    ->setTitle($title);
+            }
+        }
+
+        $email = TRUE;
+        // TODO - make this configurable
+
+        $shipment = $order->prepareShipment($itemsQty);
+        $shipment->register();
+        if ($comments) {
+            $shipment->addComment(implode("<br/>\n", $comments), false);
+        }
+        if ($email) {
+            $shipment->setEmailSent(true);
+        }
+        $shipment->getOrder()->setIsInProcess(true);
+        $shipment->getResource()->beginTransaction();
+        try {
+            $shipment->save();
+            foreach ($tracks as $track) {
+                $shipment->addTrack($track)->save();
+            }
+            $shipment->getOrder()->save();
+            $shipment->getResource()->commit();
+        } catch (Mage_Core_Exception $e) {
+            $shipment->getResource()->rollBack();
+            $this->_fault('data_invalid', $e->getMessage());
+        }
+
+        // Send email to customer
+        if ($email) {
+            try {
+                $shipment->sendEmail($email, '');
+            } catch (Exception $e) {
+                Mage::logException($e);
+            }
+        }
+
+        return $shipment->getIncrementId();
+    }
 }

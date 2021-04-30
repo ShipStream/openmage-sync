@@ -7,11 +7,13 @@ requires the corresponding plugin to be setup in ShipStream.
 
 ### What functionality does this extension add to my OpenMage/Magento store?
 
+- Adds API endpoint `shipstream.set_config`
+- Adds API endpoint `shipstream.sync_inventory`
 - Adds API endpoint `shipstream_stock_item.adjust`
 - Adds API endpoint `shipstream_order_shipment.info`
-- Adds API endpoint `shipstream_config.set`
+- Adds API endpoint `shipstream_order_shipment.createWithTracking`
 - Adds a cron job to do a full inventory pull at 02:00 every day (with a random sleep time)
-- Adds a new order status: "Submitted"
+- Adds three new order statuses: "Ready to Ship" "Failed to Submit" and "Submitted"
 - Stores the ShipStream remote url in the `core_flag` table
 
 ### Why is this required? Doesn't OpenMage/Magento already have an API?
@@ -34,14 +36,27 @@ Yes, but there are several shortcomings that this extension addresses:
 1. The OpenMage API `shipment.info` method returns SKUs that do not reflect the simple
    product SKU which is used by ShipStream. This extension returns SKUs that are appropriate
    for the WMS to use.
+1. Four or more API calls can be cut down to one with the `shipstream_order_shipment.createWithTracking`
+   method which also allows for easy customization (e.g. receiving and storing serial numbers or lot data).
    
-### What is the point of the new "Submitted" status?
+### What is the point of the new statuses?
 
-Without a state between "Pending" and "Complete" it is otherwise difficult to tell if an order
-has been successfully submitted to the warehouse and if the order has been processed at the
-warehouse. The "Submitted" status indicates that it was successfully submitted to the warehouse,
-but that it has not yet been fully shipped. The intermediate "Submitted" status is automatically
-skipped for "virtual" orders that do not contain physical goods.
+Without a state between "Processing" and "Complete" it is otherwise difficult to tell if an order
+is ready to be submitted to the warehouse, if it has been successfully submitted to the warehouse,
+or if the order has been processed at the warehouse.
+
+The "Ready to Ship" status can be set manually or programmatically to indicate when an order is ready
+to be shipped. If you don't want to use this status simply ignore it and configure ShipStream to pull
+orders in "Processing" status instead.
+
+The "Failed to Submit" status indicates that there was an error when trying to creat the order at the
+warehouse.
+
+The "Submitted" status indicates that it was successfully submitted to the warehouse, but that it has
+not yet been fully shipped. Once it is fully shipped the order status will automatically advance to "Complete".
+
+Feel free to change the status labels of these new statuses but do not change the status codes to avoid
+breaking the integration.
 
 Installation
 ============
@@ -115,12 +130,6 @@ The following Role Resources are required for best operation with the ShipStream
   - *set the order status to Complete after fulfillment*
 - Sales / Order / Retrieve orders info
   - *get basic order information pertinent to fulfillment*
-- Sales / Order / Order shipments / Create
-  - *create a OpenMage Shipment when an order is accepted from manual sync or Auto-Fulfill*
-- Sales / Order / Order shipments / Tracking
-  - *add tracking numbers when a shipment is packed*
-- Sales / Order / Order shipments / Retrieve shipment info
-  - *receive user-created Shipments when Auto-Fulfill is disabled*
 - ShipStream Sync
   - *the custom API methods added by this extension*
 

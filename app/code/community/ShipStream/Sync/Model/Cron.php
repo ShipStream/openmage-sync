@@ -69,7 +69,7 @@ class ShipStream_Sync_Model_Cron
      */
     protected function _getSourceInventory()
     {
-        $data = Mage::helper('shipstream/api')->callback('fulfillmentService');
+        $data = Mage::helper('shipstream/api')->callback('inventoryWithLock');
         return empty($data['skus']) ? [] : $data['skus'];
     }
 

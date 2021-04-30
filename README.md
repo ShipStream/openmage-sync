@@ -7,6 +7,7 @@ requires the corresponding plugin to be setup in ShipStream.
 
 ### What functionality does this extension add to my OpenMage/Magento store?
 
+- Adds API endpoint `shipstream.info`
 - Adds API endpoint `shipstream.set_config`
 - Adds API endpoint `shipstream.sync_inventory`
 - Adds API endpoint `shipstream_stock_item.adjust`
@@ -124,8 +125,6 @@ ShipStream plugin.
 
 The following Role Resources are required for best operation with the ShipStream plugin:
 
-- Core / Magento info / Retrieve info about current Magento installation
-  - *provides basic info to prove successful authentication*
 - Sales / Order / Change status, add comments
   - *set the order status to Complete after fulfillment*
 - Sales / Order / Retrieve orders info

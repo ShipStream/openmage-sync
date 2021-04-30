@@ -53,10 +53,14 @@
                 </faults>
             </shipstream_order_shipment>
             <shipstream translate="title" module="shipstream">
-                <title>Config</title>
+                <title>ShipStream Sync</title>
                 <model>shipstream/api</model>
                 <acl>shipstream</acl>
                 <methods>
+                    <info translate="title" module="shipstream">
+                        <title>Get environment info</title>
+                        <acl>shipstream</acl>
+                    </info>
                     <set_config translate="title" module="shipstream">
                         <title>Set ShipStream module config value</title>
                         <acl>shipstream</acl>

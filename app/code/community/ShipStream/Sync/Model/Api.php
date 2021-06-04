@@ -18,8 +18,8 @@ class ShipStream_Sync_Model_Api extends Mage_Api_Model_Resource_Abstract
         $result = [];
         $result['magento_edition'] = Mage::getEdition();
         $result['magento_version'] = Mage::getVersion();
-        $result['openmage_version'] = function_exists('Mage::getOpenMageVersion') ? Mage::getOpenMageVersion() : '';
-        $result['shipstream_sync_version'] = Mage::getConfig()->getModuleConfig('ShipStream_Sync')->version;
+        $result['openmage_version'] = method_exists('Mage','getOpenMageVersion') ? Mage::getOpenMageVersion() : '';
+        $result['shipstream_sync_version'] = (string) Mage::getConfig()->getModuleConfig('ShipStream_Sync')->version;
         return $result;
     }
 

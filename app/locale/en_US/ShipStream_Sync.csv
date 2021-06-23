@@ -15,3 +15,5 @@
 "Get environment info","Get environment info"
 "Set ShipStream module config value","Set ShipStream module config value"
 "Trigger an inventory sync","Trigger an inventory sync"
+"Shipment Order API","Shipment Order API"
+"Retrieve a selection of fields from orders","Retrieve a selection of fields from orders"

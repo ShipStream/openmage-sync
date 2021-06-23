@@ -23,6 +23,23 @@
                     </not_updated>
                 </faults>
             </shipstream_stock_item>
+            <shipstream_order translate="title" module="shipstream">
+                <title>Shipment Order API</title>
+                <model>shipstream/order_api</model>
+                <acl>shipstream</acl>
+                <methods>
+                    <selectFields translate="title" module="shipstream">
+                        <title>Retrieve a selection of fields from orders</title>
+                        <acl>shipstream</acl>
+                    </selectFields>
+                </methods>
+                <faults module="shipstream">
+                    <filters_invalid>
+                        <code>100</code>
+                        <message>Invalid filters given. Details in error message.</message>
+                    </filters_invalid>
+                </faults>
+            </shipstream_order>
             <shipstream_order_shipment translate="title" module="shipstream">
                 <title>Shipment API</title>
                 <model>shipstream/order_shipment_api</model>

@@ -99,7 +99,7 @@ class ShipStream_Sync_Helper_Api extends Mage_Core_Helper_Abstract
             throw new Mage_Core_Exception(Mage::helper('shipstream')->__('Invalid custom request type.'));
         }
         if (in_array($type, ['GET','DELETE']) && $data) {
-            $url .= '?'.http_build_query($data, '', '&');
+            $url .= (strpos($url, '?') ? '&' : '?').http_build_query($data, '', '&');
         }
         $ch = curl_init($url);
         $header = [

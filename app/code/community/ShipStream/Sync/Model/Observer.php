@@ -3,14 +3,15 @@
 class ShipStream_Sync_Model_Observer
 {
     /**
-     * Order save after event
+     * Order save commit after event
      *
      * @param Varien_Event_Observer $observer
      * @return void
      */
     public function salesOrderSaveAfter(Varien_Event_Observer $observer)
     {
-        $order = $observer->getDataObject(); /** @var $order Mage_Sales_Model_Order */
+        /** @var Mage_Sales_Model_Order $order */
+        $order = $observer->getDataObject();
 
         // Change "Submitted" order status which is default order status for "Complete" state
         // to "Complete" if the order is virtual (only contains Virtual or Downloadable products).
@@ -24,12 +25,21 @@ class ShipStream_Sync_Model_Observer
         }
 
         // Submit order to ShipStream when status transitions to Ready to Ship
-        if ( ! $order->getIsVirtual()
+        if (Mage::getStoreConfig('shipping/shipstream/realtime_sync')
+            &&  ! $order->getIsVirtual()
             && $order->getState() == Mage_Sales_Model_Order::STATE_PROCESSING
             && $order->dataHasChangedFor('status')
             && $order->getStatus() == 'ready_to_ship'
         ) {
-            // TODO - trigger order import
+            // Callback to trigger order import.
+            try {
+                Mage::helper('shipstream/api')->callback(
+                    'syncOrder',
+                    ['increment_id' => $order->getIncrementId()]
+                );
+            } catch (Throwable $e) {
+                Mage::logException($e);
+            }
         }
     }
 }

@@ -28,6 +28,7 @@ class ShipStream_Sync_Helper_Api extends Mage_Core_Helper_Abstract
         if (empty($apiUrl)) {
             throw new Mage_Core_Exception(Mage::helper('shipstream')->__('The warehouse API URL is required.'));
         }
+        $apiUrl = urldecode($apiUrl);
         if (FALSE === strpos($apiUrl, '{{method}}')) {
             throw new Mage_Core_Exception(Mage::helper('shipstream')->__('The warehouse API URL format is not valid.'));
         }
@@ -40,7 +41,7 @@ class ShipStream_Sync_Helper_Api extends Mage_Core_Helper_Abstract
     /**
      * Perform a cURL session
      *
-     * @param resource $ch
+     * @param CurlHandle $ch
      * @return array
      * @throws Mage_Core_Exception
      */
@@ -86,7 +87,7 @@ class ShipStream_Sync_Helper_Api extends Mage_Core_Helper_Abstract
      * @param string $url
      * @param string $type Allowed: GET, POST, PUT, DELETE.
      * @param array $data
-     * @return resource
+     * @return CurlHandle
      * @throws Mage_Core_Exception
      */
     protected function _curlInit($url, $type, array $data = array())
@@ -99,7 +100,8 @@ class ShipStream_Sync_Helper_Api extends Mage_Core_Helper_Abstract
             throw new Mage_Core_Exception(Mage::helper('shipstream')->__('Invalid custom request type.'));
         }
         if (in_array($type, ['GET','DELETE']) && $data) {
-            $url .= (strpos($url, '?') ? '&' : '?').http_build_query($data, '', '&');
+            $separator = strpos($url, '?') === false ? '?' : '&';
+            $url .= $separator.http_build_query($data, '', '&');
         }
         $ch = curl_init($url);
         $header = [

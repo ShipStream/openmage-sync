@@ -24,14 +24,14 @@
             </shipstream_setup>
         </resources>
         <events>
-            <sales_order_save_after>
+            <sales_order_save_commit_after>
                 <observers>
                     <shipstream_order_save_after>
                         <class>shipstream/observer</class>
                         <method>salesOrderSaveAfter</method>
                     </shipstream_order_save_after>
                 </observers>
-            </sales_order_save_after>
+            </sales_order_save_commit_after>
         </events>
     </global>
     <crontab>
@@ -57,4 +57,11 @@
             </modules>
         </translate>
     </adminhtml>
+    <default>
+        <shipping>
+            <shipstream>
+               <realtime_sync>1</realtime_sync>
+            </shipstream>
+        </shipping>
+    </default>
 </config>

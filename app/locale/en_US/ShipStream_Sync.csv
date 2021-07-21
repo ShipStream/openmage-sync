@@ -17,3 +17,5 @@
 "Trigger an inventory sync","Trigger an inventory sync"
 "Shipment Order API","Shipment Order API"
 "Retrieve a selection of fields from orders","Retrieve a selection of fields from orders"
+"Enable Real-Time Order Sync","Enable Real-Time Order Sync"
+"Auto sync with ShipStream when the order status is changed to <em>Ready to Ship</em>.","Auto sync with ShipStream when the order status is changed to <em>Ready to Ship</em>."

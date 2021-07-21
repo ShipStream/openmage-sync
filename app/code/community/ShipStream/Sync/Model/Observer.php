@@ -25,7 +25,7 @@ class ShipStream_Sync_Model_Observer
         }
 
         // Submit order to ShipStream when status transitions to Ready to Ship
-        if (Mage::getStoreConfig('shipping/shipstream/realtime_sync')
+        if (Mage::getStoreConfigFlag('shipping/shipstream/realtime_sync')
             &&  ! $order->getIsVirtual()
             && $order->getState() == Mage_Sales_Model_Order::STATE_PROCESSING
             && $order->dataHasChangedFor('status')

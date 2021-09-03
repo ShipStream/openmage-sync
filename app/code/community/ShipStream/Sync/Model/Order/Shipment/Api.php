@@ -76,7 +76,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
             $carrier = $package['carrier'];
             if (!isset($carriers[$carrier])) {
                 $carrier = 'custom';
-                $title = $package['service']; // TODO - need service_name
+                $title = $data['service_description'];
             } else {
                 $title = $carriers[$carrier];
             }

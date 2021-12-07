@@ -7,6 +7,10 @@ requires the corresponding plugin to be setup in ShipStream.
 
 ### What functionality does this extension add to my OpenMage/Magento store?
 
+- Adds a System > Configuration section to Sales > Shipping Settings > ShipStream Sync
+  - Enable Real-Time Order Sync
+  - Send New Shipment Email
+- Adds three new order statuses: "Ready to Ship", "Failed to Submit" and "Submitted"
 - Adds API endpoint `shipstream.info`
 - Adds API endpoint `shipstream.set_config`
 - Adds API endpoint `shipstream.sync_inventory`
@@ -14,7 +18,6 @@ requires the corresponding plugin to be setup in ShipStream.
 - Adds API endpoint `shipstream_order_shipment.info`
 - Adds API endpoint `shipstream_order_shipment.createWithTracking`
 - Adds a cron job to do a full inventory pull at 02:00 every day (with a random sleep time)
-- Adds three new order statuses: "Ready to Ship" "Failed to Submit" and "Submitted"
 - Stores the ShipStream remote url in the `core_flag` table
 
 ### Why is this required? Doesn't OpenMage/Magento already have an API?
@@ -46,18 +49,34 @@ Without a state between "Processing" and "Complete" it is otherwise difficult to
 is ready to be submitted to the warehouse, if it has been successfully submitted to the warehouse,
 or if the order has been processed at the warehouse.
 
-The "Ready to Ship" status can be set manually or programmatically to indicate when an order is ready
-to be shipped. If you don't want to use this status simply ignore it and configure ShipStream to pull
-orders in "Processing" status instead.
+The "Ready to Ship" status can be set manually or programmatically (using some custom code with your own business logic)
+to indicate when an order is ready to be shipped. If you don't want to use this status simply ignore it and configure
+ShipStream to pull orders in "Processing" status instead.
 
-The "Failed to Submit" status indicates that there was an error when trying to creat the order at the
+The "Failed to Submit" status indicates that there was an error when trying to create the order at the
 warehouse.
 
 The "Submitted" status indicates that it was successfully submitted to the warehouse, but that it has
 not yet been fully shipped. Once it is fully shipped the order status will automatically advance to "Complete".
 
-Feel free to change the status labels of these new statuses but do not change the status codes to avoid
+*Note:* Feel free to change the status labels of these new statuses but do not change the status codes to avoid
 breaking the integration.
+
+If the ShipStream plugin is configured to sync orders that are in "Ready to Ship" status the order status progression
+will work as depicted below. Note that this requires a user or some custom code to advance the order status from
+"Processing" to "Ready to Ship" before the sync will occur.  
+
+![Status State Diagram](https://raw.githubusercontent.com/ShipStream/openmage-sync/master/shipstream-sync.png)
+
+If the ShipStream plugin is configured to sync orders that are in "Processing" status the order status progression
+will work as depicted below. This configuration will result in automatic order sync without any user interaction
+once payment is received.
+
+![Status State Diagram](https://raw.githubusercontent.com/ShipStream/openmage-sync/master/shipstream-sync-processing.png)
+
+It is also possible to configure the ShipStream plugin to use any other status in the event that you would like to create
+a custom workflow.
+
 
 Installation
 ============
@@ -106,6 +125,18 @@ $ composer require shipstream/openmage-sync
 Setup
 =====
 
+Once this extension is installed and the Magento cache has been refreshed you have only three steps:
+
+1. Configure the plugin in OpenMage/Magento
+2. Create and API Role and API User
+3. Setup the plugin subscription in ShipStream 
+
+## Configuration
+
+Adjust configuration in System > Configuration > Sales > Shipping Settings > ShipStream Sync section to your needs.
+
+## Create API User
+
 This extension does not require any setup other than to create an API Role and API User for the
 ShipStream plugin.
 
@@ -132,11 +163,12 @@ The following Role Resources are required for best operation with the ShipStream
 - ShipStream Sync
   - *the custom API methods added by this extension*
 
-# Customization
+## ShipStream Setup
 
-A common customization you may want to make is to create a new order status such as "Ready for Fulfillment"
-and then configure the ShipStream plugin to only sync orders with this status. This way you can easily
-control which orders are submitted to ShipStream either manually or programmatically.
+The ShipStream plugin will need the API URL of your store which should be the base url ending with `/api/soap/`
+and the API User and API Password created in the step above.
+
+# Customization
 
 Feel free to modify this source code to fit your specific needs. For example if you have multiple
 fulfillment providers you may want to add some metadata to the orders so that they will not be

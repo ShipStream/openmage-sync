@@ -88,8 +88,9 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
             }
         }
 
-        $email = TRUE;
-        // TODO - make this configurable
+        // Get admin config of sending shipment email for order store
+        $storeId = $order->setStoreId();
+        $email = Mage::getStoreConfigFlag('shipping/shipstream/send_shipment_email',$storeId);
 
         $shipment = $order->prepareShipment($itemsQty);
         $shipment->register();

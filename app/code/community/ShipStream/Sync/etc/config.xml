@@ -61,6 +61,7 @@
         <shipping>
             <shipstream>
                <realtime_sync>1</realtime_sync>
+               <send_shipment_email>1</send_shipment_email>
             </shipstream>
         </shipping>
     </default>

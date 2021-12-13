@@ -28,9 +28,14 @@ class ShipStream_Sync_Model_Cron
                     $db->beginTransaction();
                     try {
                         $target = $this->_getTargetInventory(array_keys($source));
+                        //Get qty of order items that are in processing state and not submitted to shipstream
+                        $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
                         foreach ($source as $sku => $qty) {
                             if ( ! isset($target[$sku])) continue;
-                            if (floatval($qty) === floatval($target[$sku]['qty'])) continue;
+                            $syncQty = floatval($qty);
+                            if(isset($processingQty[$sku]))
+                                $syncQty = floatval($qty) - floatval($processingQty[$sku]['qty']); //subtract processing that is not submitted
+                            if ($syncQty === floatval($target[$sku]['qty'])) continue;
                             Mage::log("SKU: $sku remote qty is $qty and local is {$target[$sku]['qty']}", Zend_Log::DEBUG, self::LOG_FILE);
                             $stockItem = Mage::getModel('cataloginventory/stock_item')->load($target[$sku]['stock_item_id']); /** @var $stockItem Mage_CatalogInventory_Model_Stock_Item */
                             if ( ! $stockItem->getId()) {
@@ -90,7 +95,32 @@ class ShipStream_Sync_Model_Cron
             ->where('si.stock_id = ?', Mage_CatalogInventory_Model_Stock::DEFAULT_STOCK_ID)
             ->where('p.sku IN (?)', $skus);
 
-        // TODO - subtract processing that is not "submitted"
+        return $db->fetchAssoc($select);
+    }
+
+    /**
+     * Retrieve Magento order items qty that are in processing state and not submitted to shipstream
+     * @param array $sku
+     * @return array
+     */
+    protected function _getProcessingOrderItemsQty(array $skus){
+
+        $orderStates = [
+            Mage_Sales_Model_Order::STATE_COMPLETE,
+            Mage_Sales_Model_Order::STATE_CLOSED,
+            Mage_Sales_Model_Order::STATE_CANCELED
+        ];
+        $resource = Mage::getSingleton('core/resource');
+        $db = $resource->getConnection('core_write');
+        $columns = ['sku' => 'soi.sku', 'qty' => 'sum(soi.qty_ordered)'];
+        $select = $db->select()->forUpdate(TRUE)
+            ->from(['soi' => $resource->getTableName('sales/order_item')], $columns)
+            ->join(['so' => $resource->getTableName('sales/order')], 'so.entity_id = soi.order_id', [])
+            ->where('so.state NOT IN (?)',$orderStates)
+            ->where('so.status != (?)',"submitted")
+            ->where('soi.sku IN (?)', $skus)
+            ->where('soi.product_type = (?)', 'simple')
+            ->group('soi.sku');
 
         return $db->fetchAssoc($select);
     }

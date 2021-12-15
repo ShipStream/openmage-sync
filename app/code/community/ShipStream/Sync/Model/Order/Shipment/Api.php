@@ -64,8 +64,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
             $this->_fault('data_invalid', Mage::helper('sales')->__('Cannot do shipment for order.'));
         }
 
-        $itemsQty = [];
-        // TODO - use payload data to create only shipped items
+        $itemsQty = $this->_getShippedItemsQty($order, $data);
 
         $comments = [];
         // TODO - add all relevant information to comments (e.g. serial numbers, etc.)
@@ -89,7 +88,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
         }
 
         // Get admin config of sending shipment email for order store
-        $storeId = $order->setStoreId();
+        $storeId = $order->getStoreId();
         $email = Mage::getStoreConfigFlag('shipping/shipstream/send_shipment_email',$storeId);
 
         $shipment = $order->prepareShipment($itemsQty);
@@ -124,5 +123,37 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
         }
 
         return $shipment->getIncrementId();
+    }
+
+    /**
+     * Retrieve Shipped Order Item Qty from Shipstream shipment packages
+     * @param $data
+     * @return array
+     */
+    protected function _getShippedItemsQty($order, $data)
+    {
+        $orderItems = [];
+        $itemShippedQty = [];
+
+        //get Order Item Ids from magento order items
+        $orderItemsData = $order->getAllItems();
+        foreach ($orderItemsData as $orderItem){
+            $orderItems[$orderItem->getSku()] = $orderItem->getItemId();
+        }
+
+        //payload data to create shipment in openmage for only items shipped from shipstream
+        foreach ($data['packages'] as $package) {
+            foreach ($package['items'] as $item){
+                $key = $orderItems[$item['sku']];
+                if(isset($itemShippedQty[$key])) {
+                    $itemShippedQty[$key] = floatval($itemShippedQty[$key]) + floatval($item['order_item_qty']);
+                }
+                else {
+                    $itemShippedQty[$key] = floatval($item['order_item_qty']);
+                }
+            }
+        }
+
+        return $itemShippedQty;
     }
 }

@@ -31,12 +31,18 @@ class ShipStream_Sync_Model_Cron
                         //Get qty of order items that are in processing state and not submitted to shipstream
                         $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
                         foreach ($source as $sku => $qty) {
-                            if ( ! isset($target[$sku])) continue;
-                            $syncQty = floatval($qty);
-                            if(isset($processingQty[$sku]))
-                                $syncQty = floatval($qty) - floatval($processingQty[$sku]['qty']); //subtract processing that is not submitted
-                            if ($syncQty === floatval($target[$sku]['qty'])) continue;
-                            Mage::log("SKU: $sku remote qty is $qty and local is {$target[$sku]['qty']}", Zend_Log::DEBUG, self::LOG_FILE);
+                            if ( ! isset($target[$sku])) {
+                                continue;
+                            }
+                            $syncQty = $qty =  floor(floatval($qty));
+                            if(isset($processingQty[$sku])) {
+                                $syncQty = floor(bcsub($qty, floatval($processingQty[$sku]['qty'], 4)));
+                            }
+                            $targetQty = floatval($target[$sku]['qty']);
+                            if ($syncQty === $targetQty) {
+                                continue;
+                            }
+                            Mage::log("SKU: $sku remote qty is $qty and local is $targetQty", Zend_Log::DEBUG, self::LOG_FILE);
                             $stockItem = Mage::getModel('cataloginventory/stock_item')->load($target[$sku]['stock_item_id']); /** @var $stockItem Mage_CatalogInventory_Model_Stock_Item */
                             if ( ! $stockItem->getId()) {
                                 throw new Mage_Core_Exception(Mage::helper('shipstream')->__('Cannot load the stock item for the product with "%s" SKU.', $sku));
@@ -103,7 +109,8 @@ class ShipStream_Sync_Model_Cron
      * @param array $sku
      * @return array
      */
-    protected function _getProcessingOrderItemsQty(array $skus){
+    protected function _getProcessingOrderItemsQty(array $skus): array
+    {
 
         $orderStates = [
             Mage_Sales_Model_Order::STATE_COMPLETE,
@@ -118,6 +125,7 @@ class ShipStream_Sync_Model_Cron
             ->join(['so' => $resource->getTableName('sales/order')], 'so.entity_id = soi.order_id', [])
             ->where('so.state NOT IN (?)',$orderStates)
             ->where('so.status != (?)',"submitted")
+            ->where('so.hold_before_status != (?)',"submitted")
             ->where('soi.sku IN (?)', $skus)
             ->where('soi.product_type = (?)', 'simple')
             ->group('soi.sku');

@@ -1,5 +1,6 @@
 {
-  "name": "shipstream/magento1-sync",
+  "name": "shipstream/openmage-sync",
+  "homepage":"https://github.com/ShipStream/openmage-sync",
   "description": "ShipStream Sync Extension for Magento 1 and OpenMage",
   "keywords": [
     "magento", "openmage", "shipstream"
@@ -13,7 +14,7 @@
   "license": "OSL-3.0",
   "type": "magento-module",
   "require": {
-    "php": ">= 5.4",
+    "php": ">= 7.0",
     "magento-hackathon/magento-composer-installer": "*"
   }
 }

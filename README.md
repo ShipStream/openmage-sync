@@ -119,8 +119,18 @@ $ composer require shipstream/openmage-sync
 
 #### Zip file
 
-1. Download the latest release from Github releases page: TODO
-1. Extract the contents into your OpenMage/Magento source directory.
+1. Download the latest release from the [Releases](https://github.com/ShipStream/openmage-sync/releases) page or click [here](https://github.com/ShipStream/openmage-sync/archive/refs/heads/master.zip) to grab the latest nightly build.
+2. Extract the contents of the downloaded file into a clean directory.
+3. Move the files from the `openmage-sync-master/app` directory into your OpenMage/Magento root `app` directory.
+
+#### Linux command line
+
+```
+cd <your-Magento-root>
+curl -fsSL -o /tmp/openmage-sync-master.tar.gz https://github.com/ShipStream/openmage-sync/archive/refs/heads/master.tar.gz
+tar -xzv openmage-sync-master/app --strip-components=1 -f /tmp/openmage-sync-master.tar.gz
+rm /tmp/openmage-sync-master.tar.gz
+```
 
 Setup
 =====

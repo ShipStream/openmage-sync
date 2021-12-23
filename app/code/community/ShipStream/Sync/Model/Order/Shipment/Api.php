@@ -101,7 +101,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
         $shipment = $order->prepareShipment($itemsQty);
         $shipment->register();
         if ($comments) {
-            $shipment->addComment(implode("<br/>\n", $comments), false);
+            $shipment->addComment($comments);
         }
         if ($email) {
             $shipment->setEmailSent(true);
@@ -138,7 +138,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
      * @param $data
      * @return array
      */
-    protected function _getShippedItemsQty($order, $data): array
+    protected function _getShippedItemsQty($order, $data)
     {
         $orderItems = [];
         $itemShippedQty = [];
@@ -155,7 +155,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
             foreach ($package['items'] as $item){
                 $key = $orderItems[$item['sku']];
                 if(isset($itemShippedQty[$key])) {
-                    $itemShippedQty[$key] = bcadd($itemShippedQty[$key], $item['order_item_qty'],4);
+                    $itemShippedQty[$key] = $itemShippedQty[$key] + floatval($item['order_item_qty']);
                 }
                 else {
                     $itemShippedQty[$key] = floatval($item['order_item_qty']);
@@ -165,7 +165,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
 
         //discard items that are partially shipped
         foreach ($itemShippedQty as $item_id => $ordered_qty) {
-            $itemShippedQty[$item_id] = floor($itemShippedQty[$item_id]);
+            $itemShippedQty[$item_id] = round($ordered_qty,0);
             if($itemShippedQty[$item_id] == 0){
                 unset($itemShippedQty[$item_id]);
             }
@@ -181,7 +181,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
      * @param $data
      * @return string
      */
-    protected function _getCommentsData($order, $data): string
+    protected function _getCommentsData($order, $data)
     {
         $orderComments = [];
 
@@ -227,7 +227,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
         if(function_exists('yaml_emit')) {
             return yaml_emit($comments);
         } else {
-            return json_encode($comments);
+            return json_encode($comments, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
     }
 

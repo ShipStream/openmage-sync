@@ -34,12 +34,13 @@ class ShipStream_Sync_Model_Cron
                             if ( ! isset($target[$sku])) {
                                 continue;
                             }
-                            $syncQty = $qty =  floor(floatval($qty));
+                            $qty =  floor(floatval($qty));
+                            $syncQty = $qty;
                             if(isset($processingQty[$sku])) {
-                                $syncQty = floor(bcsub($qty, floatval($processingQty[$sku]['qty'], 4)));
+                                $syncQty = floor($qty - floatval($processingQty[$sku]['qty']));
                             }
                             $targetQty = floatval($target[$sku]['qty']);
-                            if ($syncQty === $targetQty) {
+                            if ($syncQty == $targetQty) {
                                 continue;
                             }
                             Mage::log("SKU: $sku remote qty is $qty and local is $targetQty", Zend_Log::DEBUG, self::LOG_FILE);
@@ -106,10 +107,10 @@ class ShipStream_Sync_Model_Cron
 
     /**
      * Retrieve Magento order items qty that are in processing state and not submitted to shipstream
-     * @param array $sku
-     * @return array
+     * @param array $skus
+     * @return mixed
      */
-    protected function _getProcessingOrderItemsQty(array $skus): array
+    protected function _getProcessingOrderItemsQty(array $skus)
     {
 
         $orderStates = [
@@ -119,15 +120,15 @@ class ShipStream_Sync_Model_Cron
         ];
         $resource = Mage::getSingleton('core/resource');
         $db = $resource->getConnection('core_write');
-        $columns = ['sku' => 'soi.sku', 'qty' => 'sum(soi.qty_ordered)'];
+        $columns = ['sku' => 'soi.sku', 'qty' => 'sum(soi.qty_ordered - soi.qty_shipped - soi.qty_canceled)'];
         $select = $db->select()->forUpdate(TRUE)
             ->from(['soi' => $resource->getTableName('sales/order_item')], $columns)
             ->join(['so' => $resource->getTableName('sales/order')], 'so.entity_id = soi.order_id', [])
             ->where('so.state NOT IN (?)',$orderStates)
-            ->where('so.status != (?)',"submitted")
-            ->where('so.hold_before_status != (?)',"submitted")
+            ->where('so.status != ?',"submitted")
+            ->where('so.state != "holded" OR so.hold_before_status != "submitted"')
             ->where('soi.sku IN (?)', $skus)
-            ->where('soi.product_type = (?)', 'simple')
+            ->where('soi.product_type = ?', 'simple')
             ->group('soi.sku');
 
         return $db->fetchAssoc($select);

@@ -1,5 +1,5 @@
 ---
-name: "pre-release"
+name: Release
 
 on:
   push:
@@ -7,21 +7,18 @@ on:
       - "master"
 
 jobs:
-  pre-release:
-    name: "Pre Release"
-    runs-on: "ubuntu-latest"
-
+  release:
+    runs-on: ubuntu-latest
     steps:
-      # ...
-      - name: "Build"
-        run: |
-          cp README.md app/code/community/ShipStream/Sync/
-
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Create release
+        uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
-          prerelease: true
           title: "Manual Installation Build"
-          files: |
-            app
+          draft: false
+          prerelease: true

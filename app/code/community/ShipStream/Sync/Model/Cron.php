@@ -28,7 +28,7 @@ class ShipStream_Sync_Model_Cron
                     $db->beginTransaction();
                     try {
                         $target = $this->_getTargetInventory(array_keys($source));
-                        //Get qty of order items that are in processing state and not submitted to shipstream
+                        // Get qty of order items that are in processing state and not submitted to shipstream
                         $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
                         foreach ($source as $sku => $qty) {
                             if ( ! isset($target[$sku])) {
@@ -36,7 +36,7 @@ class ShipStream_Sync_Model_Cron
                             }
                             $qty =  floor(floatval($qty));
                             $syncQty = $qty;
-                            if(isset($processingQty[$sku])) {
+                            if (isset($processingQty[$sku])) {
                                 $syncQty = floor($qty - floatval($processingQty[$sku]['qty']));
                             }
                             $targetQty = floatval($target[$sku]['qty']);
@@ -50,7 +50,7 @@ class ShipStream_Sync_Model_Cron
                             }
                             if ($stockItem->getManageStock() && Mage::helper('cataloginventory')->isQty($stockItem->getTypeId())) {
                                 $oldQty = $stockItem->getQty();
-                                $stockItem->setQty($qty);
+                                $stockItem->setQty($syncQty);
                                 if ($oldQty < 1 && ! $stockItem->getIsInStock() && $stockItem->getCanBackInStock() && $stockItem->getQty() > $stockItem->getMinQty()) {
                                     $stockItem->setIsInStock(true)
                                         ->setStockStatusChangedAutomaticallyFlag(true);
@@ -120,7 +120,7 @@ class ShipStream_Sync_Model_Cron
         ];
         $resource = Mage::getSingleton('core/resource');
         $db = $resource->getConnection('core_write');
-        $columns = ['sku' => 'soi.sku', 'qty' => 'sum(soi.qty_ordered - soi.qty_shipped - soi.qty_canceled)'];
+        $columns = ['sku' => 'soi.sku', 'qty' => 'GREATEST(0, sum(soi.qty_ordered - soi.qty_canceled - soi.qty_refunded))'];
         $select = $db->select()->forUpdate(TRUE)
             ->from(['soi' => $resource->getTableName('sales/order_item')], $columns)
             ->join(['so' => $resource->getTableName('sales/order')], 'so.entity_id = soi.order_id', [])

@@ -143,17 +143,15 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
         $orderItems = [];
         $itemShippedQty = [];
 
-        // Get Order Item Ids from magento order items
-        $orderItemsData = $order->getAllItems();
-        foreach ($orderItemsData as $orderItem) {
-            $orderItems[$orderItem->getSku()] = $orderItem->getItemId();
-
+        // Get order item reference Ids from shipment data
+        foreach ($data['items'] as $dataItem) {
+            $orderItems[$dataItem['order_item_id']] = $dataItem['order_item_ref'];
         }
 
         // Payload data to create shipment in openmage for only items shipped from shipstream
         foreach ($data['packages'] as $package) {
             foreach ($package['items'] as $item) {
-                $key = $orderItems[$item['sku']];
+                $key = $orderItems[$item['order_item_id']];
                 if (isset($itemShippedQty[$key])) {
                     $itemShippedQty[$key] = $itemShippedQty[$key] + floatval($item['order_item_qty']);
                 }

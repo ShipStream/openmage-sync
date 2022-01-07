@@ -1,9 +1,9 @@
 ShipStream <=> OpenMage Sync Extension
 ==========================
 
-This is an extension for OpenMage and Magento 1 (CE or EE) which facilitates efficient synchronization
-between ShipStream and OpenMage/Magento. This extension on its own will have no effect and
-requires the corresponding plugin to be setup in ShipStream.
+This is an extension for OpenMage and Magento 1 (CE or EE) which facilitates efficient inventory, order
+and tracking info synchronization between ShipStream and OpenMage/Magento. This extension will
+have no effect until the corresponding plugin subscription has been configured in ShipStream.
 
 ### What functionality does this extension add to my OpenMage/Magento store?
 
@@ -17,7 +17,8 @@ requires the corresponding plugin to be setup in ShipStream.
 - Adds API endpoint `shipstream_stock_item.adjust`
 - Adds API endpoint `shipstream_order_shipment.info`
 - Adds API endpoint `shipstream_order_shipment.createWithTracking`
-- Adds a cron job to do a full inventory pull at 02:00 every day (with a random sleep time)
+- Adds an event observer for `sales_order_save_commit_after` to trigger an order sync when an order is saved
+- Adds a cron job to do a full inventory sync every hour (with a short random sleep time)
 - Stores the ShipStream remote url in the `core_flag` table
 
 ### Why is this required? Doesn't OpenMage/Magento already have an API?
@@ -42,7 +43,10 @@ Yes, but there are several shortcomings that this extension addresses:
    for the WMS to use.
 1. Four or more API calls can be cut down to one with the `shipstream_order_shipment.createWithTracking`
    method which also allows for easy customization (e.g. receiving and storing serial numbers or lot data).
-   
+
+The API endpoints are implemented using Magento's provided SOAP/XML-RPC API so these endpoints do
+not create any additional security vulnerability exposure.
+
 ### What is the point of the new statuses?
 
 Without a state between "Processing" and "Complete" it is otherwise difficult to tell if an order
@@ -81,8 +85,9 @@ a custom workflow.
 Installation
 ============
 
-You can install this extension using Composer, modman or zip file. Flush the OpenMage cache after
-installation.
+You can install this extension using Composer, modman, zip file or tar file.
+
+**Flush the OpenMage cache after installation to activate the extension.**
 
 #### modman
 
@@ -123,7 +128,7 @@ $ composer require shipstream/openmage-sync
 2. Extract the contents of the downloaded file into a clean directory.
 3. Move the files from the `openmage-sync-master/app` directory into your OpenMage/Magento root `app` directory.
 
-#### Linux command line
+#### Linux command line (tar file)
 
 ```
 cd <your-Magento-root>
@@ -138,8 +143,10 @@ Setup
 Once this extension is installed and the Magento cache has been refreshed you have only three steps:
 
 1. Configure the plugin in OpenMage/Magento
-2. Create and API Role and API User
+2. Create an API Role and API User
 3. Setup the plugin subscription in ShipStream 
+
+More details for each step are provided below.
 
 ## Configuration
 
@@ -167,16 +174,19 @@ ShipStream plugin.
 The following Role Resources are required for best operation with the ShipStream plugin:
 
 - Sales / Order / Change status, add comments
-  - *set the order status to Complete after fulfillment*
+  - *required to set the order status to Complete after fulfillment*
 - Sales / Order / Retrieve orders info
-  - *get basic order information pertinent to fulfillment*
+  - *required to get basic order information pertinent to fulfillment*
 - ShipStream Sync
-  - *the custom API methods added by this extension*
+  - *use the custom API methods added by this extension*
 
 ## ShipStream Setup
 
-The ShipStream plugin will need the API URL of your store which should be the base url ending with `/api/soap/`
-and the API User and API Password created in the step above.
+The ShipStream plugin will need the following information:
+
+- The API URL of your store which should be the Magento admin site base url plus `/api/soap/`
+- The API User and API Password (created in the step above)
+- The name of the order status to use for automatic import (e.g. "Processing" or "Ready to Ship")
 
 # Customization
 

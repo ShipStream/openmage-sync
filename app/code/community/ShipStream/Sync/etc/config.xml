@@ -38,7 +38,7 @@
         <jobs>
             <full_inventory_synchronization>
                 <schedule>
-                    <cron_expr>0 2 * * *</cron_expr>
+                    <cron_expr>0 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>shipstream/cron::fullInventorySync</model>

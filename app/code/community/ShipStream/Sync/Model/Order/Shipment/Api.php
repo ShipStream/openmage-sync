@@ -166,7 +166,7 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
             // Handling fractional BOM items shipped qty
             $fraction = fmod($ordered_qty, 1);
             $wholeNumber = intval($ordered_qty);
-            if ($fraction >= 0.88) {
+            if ($fraction >= 0.9999) {
                 $ordered_qty = $wholeNumber + round($fraction);
             }
             else {

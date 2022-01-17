@@ -65,21 +65,27 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
         }
 
         $itemsQty = [];
-        // TODO - use payload data to create only shipped items
+        if ($data['order_status'] != "complete") {
+            $itemsQty = $this->_getShippedItemsQty($order, $data);
+            if(sizeof($itemsQty) == 0){
+                $this->_fault('data_invalid', Mage::helper('sales')->__('Decimal qty is not allowed to ship in magento'));
+            }
+        }
 
-        $comments = [];
-        // TODO - add all relevant information to comments (e.g. serial numbers, etc.)
+        $comments = $this->_getCommentsData($order, $data);
 
         $tracks = [];
         $carriers = $this->_getCarriers($order);
+
+        // Get carrier information from shipment data not from package
+        $carrier = $data['carrier'];
+        if (!isset($carriers[$carrier])) {
+            $carrier = 'custom';
+            $title = $data['service_description'];
+        } else {
+            $title = $carriers[$carrier];
+        }
         foreach ($data['packages'] as $package) {
-            $carrier = $package['carrier'];
-            if (!isset($carriers[$carrier])) {
-                $carrier = 'custom';
-                $title = $data['service_description'];
-            } else {
-                $title = $carriers[$carrier];
-            }
             foreach ($package['tracking_numbers'] as $trackingNumber) {
                 $tracks[] = Mage::getModel('sales/order_shipment_track')
                     ->setNumber($trackingNumber)
@@ -88,13 +94,14 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
             }
         }
 
-        $email = TRUE;
-        // TODO - make this configurable
+        // Get admin config of sending shipment email for order store
+        $storeId = $order->getStoreId();
+        $email = Mage::getStoreConfigFlag('shipping/shipstream/send_shipment_email',$storeId);
 
         $shipment = $order->prepareShipment($itemsQty);
         $shipment->register();
         if ($comments) {
-            $shipment->addComment(implode("<br/>\n", $comments), false);
+            $shipment->addComment($comments);
         }
         if ($email) {
             $shipment->setEmailSent(true);
@@ -124,4 +131,111 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
 
         return $shipment->getIncrementId();
     }
+
+    /**
+     * Retrieve Shipped Order Item Qty from Shipstream shipment packages
+     * @param $order
+     * @param $data
+     * @return array
+     */
+    protected function _getShippedItemsQty($order, $data)
+    {
+        $orderItems = [];
+        $itemShippedQty = [];
+
+        // Get order item reference Ids from shipment data
+        foreach ($data['items'] as $dataItem) {
+            $orderItems[$dataItem['order_item_id']] = $dataItem['order_item_ref'];
+        }
+
+        // Payload data to create shipment in openmage for only items shipped from shipstream
+        foreach ($data['packages'] as $package) {
+            foreach ($package['items'] as $item) {
+                $key = $orderItems[$item['order_item_id']];
+                if (isset($itemShippedQty[$key])) {
+                    $itemShippedQty[$key] = $itemShippedQty[$key] + floatval($item['order_item_qty']);
+                }
+                else {
+                    $itemShippedQty[$key] = floatval($item['order_item_qty']);
+                }
+            }
+        }
+
+        // Discard items that are partially shipped
+        foreach ($itemShippedQty as $item_id => $ordered_qty) {
+            // Handling fractional BOM items shipped qty
+            $fraction = fmod($ordered_qty, 1);
+            $wholeNumber = intval($ordered_qty);
+            if ($fraction >= 0.9999) {
+                $ordered_qty = $wholeNumber + round($fraction);
+            }
+            else {
+                $ordered_qty = $wholeNumber;
+            }
+            $itemShippedQty[$item_id] = $ordered_qty;
+            if ($itemShippedQty[$item_id] == 0) {
+                unset($itemShippedQty[$item_id]);
+            }
+
+        }
+
+        return $itemShippedQty;
+    }
+
+    /**
+     * Prepare shipment comment data from Shipstream shipment packages
+     * @param $order
+     * @param $data
+     * @return string
+     */
+    protected function _getCommentsData($order, $data)
+    {
+        $orderComments = [];
+
+        // Get Item name & SKU from magento order items
+        $orderItemsData = $order->getAllItems();
+        foreach ($orderItemsData as $orderItem) {
+            $orderComments[$orderItem->getSku()]['sku'] = $orderItem->getSku();
+            $orderComments[$orderItem->getSku()]['name'] = $orderItem->getName();
+        }
+
+        // Get lot data of order items
+        foreach ($data['items'] as $item) {
+            if (isset($orderComments[$item['sku']])) {
+                foreach ($item['lot_data'] as $lot_data)
+                    $orderComments[$item['sku']]['lotdata'][] = $lot_data;
+            }
+        }
+
+        // Get collected data of packages from shipment packages
+        foreach ($data['packages'] as $package) {
+            // Shipstream internal order_item_id & SKU to map that with Magento SKU for collected data
+            $orderItems = [];
+            foreach ($package['items'] as $item) {
+                $orderItems[$item['order_item_id']] = $item['sku'];
+            }
+
+            // Adding package data value under relevant Order Item
+            foreach ($package['package_data'] as $packageData) {
+                if (isset($orderItems[$packageData['order_item_id']])) {
+                    $sku = $orderItems[$packageData['order_item_id']];
+                    $orderComments[$sku]['collected_data']['label'] = $packageData['label'];
+                    $orderComments[$sku]['collected_data']['value'] = $packageData['value'];
+                }
+            }
+        }
+
+        // Format  array to discard indexes
+        $comments = [];
+        foreach ($orderComments as $orderComment) {
+            $comments[] = $orderComment;
+        }
+        // Format comments data into yaml format if yaml plugin is configured
+        if (function_exists('yaml_emit')) {
+            return yaml_emit($comments);
+        } else {
+            return json_encode($comments, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
+    }
+
 }

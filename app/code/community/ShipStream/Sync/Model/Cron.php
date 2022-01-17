@@ -28,17 +28,29 @@ class ShipStream_Sync_Model_Cron
                     $db->beginTransaction();
                     try {
                         $target = $this->_getTargetInventory(array_keys($source));
+                        // Get qty of order items that are in processing state and not submitted to shipstream
+                        $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
                         foreach ($source as $sku => $qty) {
-                            if ( ! isset($target[$sku])) continue;
-                            if (floatval($qty) === floatval($target[$sku]['qty'])) continue;
-                            Mage::log("SKU: $sku remote qty is $qty and local is {$target[$sku]['qty']}", Zend_Log::DEBUG, self::LOG_FILE);
+                            if ( ! isset($target[$sku])) {
+                                continue;
+                            }
+                            $qty =  floor(floatval($qty));
+                            $syncQty = $qty;
+                            if (isset($processingQty[$sku])) {
+                                $syncQty = floor($qty - floatval($processingQty[$sku]['qty']));
+                            }
+                            $targetQty = floatval($target[$sku]['qty']);
+                            if ($syncQty == $targetQty) {
+                                continue;
+                            }
+                            Mage::log("SKU: $sku remote qty is $qty and local is $targetQty", Zend_Log::DEBUG, self::LOG_FILE);
                             $stockItem = Mage::getModel('cataloginventory/stock_item')->load($target[$sku]['stock_item_id']); /** @var $stockItem Mage_CatalogInventory_Model_Stock_Item */
                             if ( ! $stockItem->getId()) {
                                 throw new Mage_Core_Exception(Mage::helper('shipstream')->__('Cannot load the stock item for the product with "%s" SKU.', $sku));
                             }
                             if ($stockItem->getManageStock() && Mage::helper('cataloginventory')->isQty($stockItem->getTypeId())) {
                                 $oldQty = $stockItem->getQty();
-                                $stockItem->setQty($qty);
+                                $stockItem->setQty($syncQty);
                                 if ($oldQty < 1 && ! $stockItem->getIsInStock() && $stockItem->getCanBackInStock() && $stockItem->getQty() > $stockItem->getMinQty()) {
                                     $stockItem->setIsInStock(true)
                                         ->setStockStatusChangedAutomaticallyFlag(true);
@@ -90,7 +102,34 @@ class ShipStream_Sync_Model_Cron
             ->where('si.stock_id = ?', Mage_CatalogInventory_Model_Stock::DEFAULT_STOCK_ID)
             ->where('p.sku IN (?)', $skus);
 
-        // TODO - subtract processing that is not "submitted"
+        return $db->fetchAssoc($select);
+    }
+
+    /**
+     * Retrieve Magento order items qty that are in processing state and not submitted to shipstream
+     * @param array $skus
+     * @return mixed
+     */
+    protected function _getProcessingOrderItemsQty(array $skus)
+    {
+
+        $orderStates = [
+            Mage_Sales_Model_Order::STATE_COMPLETE,
+            Mage_Sales_Model_Order::STATE_CLOSED,
+            Mage_Sales_Model_Order::STATE_CANCELED
+        ];
+        $resource = Mage::getSingleton('core/resource');
+        $db = $resource->getConnection('core_write');
+        $columns = ['sku' => 'soi.sku', 'qty' => 'GREATEST(0, sum(soi.qty_ordered - soi.qty_canceled - soi.qty_refunded))'];
+        $select = $db->select()->forUpdate(TRUE)
+            ->from(['soi' => $resource->getTableName('sales/order_item')], $columns)
+            ->join(['so' => $resource->getTableName('sales/order')], 'so.entity_id = soi.order_id', [])
+            ->where('so.state NOT IN (?)',$orderStates)
+            ->where('so.status != ?',"submitted")
+            ->where('so.state != "holded" OR so.hold_before_status != "submitted"')
+            ->where('soi.sku IN (?)', $skus)
+            ->where('soi.product_type = ?', 'simple')
+            ->group('soi.sku');
 
         return $db->fetchAssoc($select);
     }

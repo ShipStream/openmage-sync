@@ -2,8 +2,8 @@ ShipStream <=> OpenMage Sync Extension
 ==========================
 
 This is an extension for OpenMage and Magento 1 (CE or EE) which facilitates efficient inventory, order
-and tracking info synchronization between ShipStream and OpenMage/Magento. This extension will
-have no effect until the corresponding plugin subscription has been configured in ShipStream.
+and tracking info synchronization between OpenMage/Magento and the [ShipStream OpenMage/Magento Plugin](https://github.com/ShipStream/plugin-openmage).
+This extension will have no effect until the corresponding plugin subscription has been configured in ShipStream.
 
 ### What functionality does this extension add to my OpenMage/Magento store?
 

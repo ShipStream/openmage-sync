@@ -7,9 +7,9 @@ This extension will have no effect until the corresponding plugin subscription h
 
 ### What functionality does this extension add to my OpenMage/Magento store?
 
-- Adds a System > Configuration section to Sales > Shipping Settings > ShipStream Sync
-  - Enable Real-Time Order Sync
-  - Send New Shipment Email
+- Adds a System > Configuration section to Services > ShipStream Sync
+  - General > Enable Real-Time Order Sync
+  - General > Send New Shipment Email
 - Adds three new order statuses: "Ready to Ship", "Failed to Submit" and "Submitted"
 - Adds API endpoint `shipstream.info`
 - Adds API endpoint `shipstream.set_config`
@@ -150,7 +150,7 @@ More details for each step are provided below.
 
 ## Configuration
 
-Adjust configuration in System > Configuration > Sales > Shipping Settings > ShipStream Sync section to your needs.
+Adjust configuration in System > Configuration > Services > ShipStream Sync > General section to your needs.
 
 ## Create API User
 

@@ -1,35 +1,34 @@
 <?php
 
-class ShipStream_Sync_Model_Cron
+class ShipStream_Sync_Model_InventorySync
 {
-    const LOG_FILE = 'shipstream_cron.log';
+    const LOG_FILE = 'shipstream.log';
 
     /**
      * Synchronize Magento inventory with the warehouse inventory
-     *
-     * @return void
+
      * @throws Exception
      */
-    public function fullInventorySync($sleep = TRUE)
+    public function __invoke(): array
     {
-        if ( ! Mage::helper('shipstream/api')->isConfigured()) {
-            return;
-        }
-        if ($sleep) {
-            sleep(random_int(0, 60)); // Avoid stampeding the server
-        }
         Mage::log('Beginning inventory sync.', Zend_Log::DEBUG, self::LOG_FILE);
         $resource = Mage::getSingleton('core/resource');
         $db = $resource->getConnection('core_write'); /** @var $db Magento_Db_Adapter_Pdo_Mysql */
-        $_source = $this->_getSourceInventory();
+
+        $results = ['no_change' => [], 'updated' => [], 'errors' => []];
         try {
-            if ( ! empty($_source) && is_array($_source)) {
+            $data = Mage::helper('shipstream/api')->callback('inventoryWithLock');
+            $_source =  $data['skus'] ?? [];
+            if (empty($_source)) {
+                Mage::log('No inventory data received.', Zend_Log::DEBUG, self::LOG_FILE);
+            } else {
                 foreach (array_chunk($_source, 5000, TRUE) as $source) {
                     $db->beginTransaction();
                     try {
                         $target = $this->_getTargetInventory(array_keys($source));
                         // Get qty of order items that are in processing state and not submitted to shipstream
                         $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
+                        $updated = $noChange = [];
                         foreach ($source as $sku => $qty) {
                             if ( ! isset($target[$sku])) {
                                 continue;
@@ -41,6 +40,7 @@ class ShipStream_Sync_Model_Cron
                             }
                             $targetQty = floatval($target[$sku]['qty']);
                             if ($syncQty == $targetQty) {
+                                $noChange[] = $sku;
                                 continue;
                             }
                             Mage::log("SKU: $sku remote qty is $qty and local is $targetQty", Zend_Log::DEBUG, self::LOG_FILE);
@@ -54,35 +54,35 @@ class ShipStream_Sync_Model_Cron
                                 if ($oldQty < 1 && ! $stockItem->getIsInStock() && $stockItem->getCanBackInStock() && $stockItem->getQty() > $stockItem->getMinQty()) {
                                     $stockItem->setIsInStock(true)
                                         ->setStockStatusChangedAutomaticallyFlag(true);
+                                    Mage::log("SKU: $sku is back in stock.", Zend_Log::DEBUG, self::LOG_FILE);
                                 }
                                 $stockItem->save();
                             }
+                            $updated[] = ['sku' => $stockItem->getProduct()->getSku(), 'old_qty' => $oldQty, 'new_qty' => $stockItem->getQty()];
                         }
                         $db->commit();
+                        $results['no_change'] = array_merge($results['no_change'], $noChange);
+                        $results['updated'] = array_merge($results['updated'], $updated);
                     } catch (Exception $e) {
                         $db->rollback();
-                        throw $e;
+                        $results['errors'][] = $e->getMessage();
+                        Mage::log("Error syncing inventory ({$e->getMessage()}). Full exception:\n$e", Zend_Log::ERR, self::LOG_FILE);
                     }
                 }
             }
-        } catch (Exception $exception) {
+        } catch (Exception $e) {
+            $results['errors'][] = $e->getMessage();
+            Mage::log("Error syncing inventory ({$e->getMessage()}). Full exception:\n$e", Zend_Log::ERR, self::LOG_FILE);
         }
-        Mage::helper('shipstream/api')->callback('unlockOrderImport');
-        if (isset($exception)) { // Instead of }finally{
-            throw $exception;
+        try {
+            Mage::helper('shipstream/api')->callback('unlockOrderImport');
+        } catch (Exception $e) {
+            Mage::log("Error unlocking order import ({$e->getMessage()}).", Zend_Log::ERR, self::LOG_FILE);
+            $results['errors'][] = $e->getMessage();
         }
-    }
 
-    /**
-     * Retrieve inventory from the warehouse
-     *
-     * @throws Exception
-     * @return array
-     */
-    protected function _getSourceInventory()
-    {
-        $data = Mage::helper('shipstream/api')->callback('inventoryWithLock');
-        return empty($data['skus']) ? [] : $data['skus'];
+        Mage::log('Inventory sync complete.', Zend_Log::DEBUG, self::LOG_FILE);
+        return $results;
     }
 
     /**

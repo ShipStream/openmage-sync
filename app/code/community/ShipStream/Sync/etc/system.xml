@@ -25,7 +25,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <comment><![CDATA[Auto sync with ShipStream when the order status is changed to <em>Ready to Ship</em>.]]></comment>
+                            <comment><![CDATA[Auto-sync with ShipStream when the order status is changed to <em>Ready to Ship</em>.]]></comment>
                         </realtime_sync>
                     </fields>
                     <fields>
@@ -37,7 +37,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>0</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <comment><![CDATA[Automatically send New Shipment email to the customer when a Shipment is fulfilled by ShipStream]]></comment>
+                            <comment><![CDATA[Automatically send the New Shipment email to the customer when a Shipment is fulfilled by ShipStream.]]></comment>
                         </send_shipment_email>
                     </fields>
                 </general>

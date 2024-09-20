@@ -34,18 +34,6 @@
             </sales_order_save_commit_after>
         </events>
     </global>
-    <crontab>
-        <jobs>
-            <full_inventory_synchronization>
-                <schedule>
-                    <cron_expr>0 * * * *</cron_expr>
-                </schedule>
-                <run>
-                    <model>shipstream/cron::fullInventorySync</model>
-                </run>
-            </full_inventory_synchronization>
-        </jobs>
-    </crontab>
     <adminhtml>
         <translate>
             <modules>

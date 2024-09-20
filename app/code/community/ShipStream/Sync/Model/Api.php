@@ -42,13 +42,8 @@ class ShipStream_Sync_Model_Api extends Mage_Api_Model_Resource_Abstract
      */
     public function sync_inventory()
     {
-        try {
-            Mage::getModel('shipstream/cron')->fullInventorySync(FALSE);
-        } catch (Exception $e) {
-            Mage::logException($e);
-            return ['success' => FALSE, 'message' => $e->getMessage()];
-        }
-        return ['success' => TRUE];
+        $service = new ShipStream_Sync_Model_InventorySync();
+        return $service();
     }
 
 }

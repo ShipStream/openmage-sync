@@ -17,6 +17,7 @@ This extension will have no effect until the corresponding plugin subscription h
 - Adds API endpoint `shipstream_stock_item.adjust`
 - Adds API endpoint `shipstream_order_shipment.info`
 - Adds API endpoint `shipstream_order_shipment.createWithTracking`
+- Adds API endpoint `shipstream_order_shipment.addTrackingNumbers`
 - Adds an event observer for `sales_order_save_commit_after` to trigger an order sync when an order is saved
 - Adds a cron job to do a full inventory sync every hour (with a short random sleep time)
 - Stores the ShipStream remote url in the `core_flag` table

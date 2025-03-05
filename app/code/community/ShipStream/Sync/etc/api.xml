@@ -53,6 +53,10 @@
                         <title>Create shipment from ShipStream data</title>
                         <acl>shipstream</acl>
                     </createWithTracking>
+                    <addTrackingNumbers translate="title" module="shipstream">
+                        <title>Add tracking numbers from ShipStream data</title>
+                        <acl>shipstream</acl>
+                    </addTrackingNumbers>
                 </methods>
                 <faults module="shipstream">
                     <not_exists>

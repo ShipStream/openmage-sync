@@ -133,6 +133,85 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
     }
 
     /**
+     * Add new tracking numbers to an existing shipment
+     *
+     * @param string $shipmentIncrementId  The increment_id of the existing shipment (e.g. "100000123")
+     * @param array{
+     *    carrier: string,
+     *    service_description: string,
+     *    packages: array{
+     *       tracking_numbers: string[],
+     *   } $data An array of tracking data. Example:
+     *  [
+     *      'carrier' => 'ups',
+     *      'service_description'=> 'UPS Ground', // or 'Custom Title'
+     *      'packages' => [
+     *          [
+     *              'tracking_numbers' => ['1ZABC...', '1ZXYZ...'],
+     *          ],
+     *          [
+     *              'tracking_numbers' => ['1Z9999...'],
+     *          ]
+     *      ]
+     *  ]
+     *
+     * @return bool True on success
+     */
+    public function addTrackingNumbers($shipmentIncrementId, array $data)
+    {
+        /** @var $shipment Mage_Sales_Model_Order_Shipment */
+        $shipment = Mage::getModel('sales/order_shipment')->loadByIncrementId($shipmentIncrementId);
+        if ( ! $shipment->getId()) {
+            $this->_fault('not_exists', "Shipment with increment ID '{$shipmentIncrementId}' does not exist.");
+        }
+
+        $order = $shipment->getOrder();
+        $carriers = $this->_getCarriers($order);
+        $carrier = $data['carrier'] ?? 'custom';
+        if ( ! isset($carriers[$carrier])) {
+            $carrier = 'custom';
+            $title = $data['service_description'] ?? 'Custom';
+        } else {
+            $title = $carriers[$carrier];
+            if (isset($data['service_description']) && $data['service_description']) {
+                $title = $data['service_description'];
+            }
+        }
+
+        $tracks = [];
+        if ( ! empty($data['packages'])) {
+            foreach ($data['packages'] as $package) {
+                if (!empty($package['tracking_numbers']) && is_array($package['tracking_numbers'])) {
+                    foreach ($package['tracking_numbers'] as $trackingNumber) {
+                        $tracks[] = Mage::getModel('sales/order_shipment_track')
+                            ->setNumber($trackingNumber)
+                            ->setCarrierCode($carrier)
+                            ->setTitle($title);
+                    }
+                }
+            }
+        }
+        if (empty($tracks)) {
+            $this->_fault('data_invalid', 'No valid tracking numbers provided.');
+        }
+
+        $shipment->getResource()->beginTransaction();
+        try {
+            foreach ($tracks as $track) {
+                $shipment->addTrack($track);
+            }
+            $shipment->save();
+            $shipment->getOrder()->save();
+            $shipment->getResource()->commit();
+        } catch (Exception $e) {
+            $shipment->getResource()->rollBack();
+            $this->_fault('data_invalid', $e->getMessage());
+        }
+
+        return true;
+    }
+
+    /**
      * Retrieve Shipped Order Item Qty from Shipstream shipment packages
      * @param $order
      * @param $data

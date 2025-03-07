@@ -212,6 +212,45 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
     }
 
     /**
+     * Revert a shipment by it and order increment ID
+     *
+     * @param string $orderIncrementId Magento order increment ID
+     * @param string $shipmentIncrementId Magento shipment increment ID
+     * @param array $data Additional data from WMS
+     *
+     * @return bool
+     */
+    public function revert($orderIncrementId, $shipmentIncrementId, array $data)
+    {
+        try {
+            $order = Mage::getModel('sales/order')->loadByIncrementId($orderIncrementId);
+            if (!$order->getId()) {
+                $this->_fault('order_not_exists', "Order #{$orderIncrementId} does not exist.");
+            }
+
+            $shipment = Mage::getModel('sales/order_shipment')->loadByIncrementId($shipmentIncrementId);
+            if (!$shipment->getId()) {
+                $this->_fault('shipment_not_exists', "Shipment #{$shipmentIncrementId} does not exist.");
+            }
+
+            if ($shipment->getOrderId() != $order->getId()) {
+                $this->_fault('invalid_data', "Shipment #{$shipmentIncrementId} does not belong to Order #{$orderIncrementId}.");
+            }
+
+            $shipment->delete();
+            $comment = sprintf('Reverted shipment #%s', $shipmentIncrementId);
+            $order->setData('state', Mage_Sales_Model_Order::STATE_PROCESSING);
+            $order->addStatusHistoryComment($comment, 'submitted')
+                ->setIsCustomerNotified(false)
+                ->save();
+        } catch (Exception $e) {
+            $this->_fault('revert_failed', 'Failed to revert shipment: ' . $e->getMessage());
+        }
+
+        return true;
+    }
+
+    /**
      * Retrieve Shipped Order Item Qty from Shipstream shipment packages
      * @param $order
      * @param $data

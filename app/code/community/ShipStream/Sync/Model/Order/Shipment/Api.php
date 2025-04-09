@@ -224,25 +224,34 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
     {
         try {
             $order = Mage::getModel('sales/order')->loadByIncrementId($orderIncrementId);
-            if (!$order->getId()) {
-                $this->_fault('order_not_exists', "Order #{$orderIncrementId} does not exist.");
-            }
-
             $shipment = Mage::getModel('sales/order_shipment')->loadByIncrementId($shipmentIncrementId);
+
+            if (!$order->getId()) {
+                throw new Exception("Order #{$orderIncrementId} does not exist.");
+            }
             if (!$shipment->getId()) {
-                $this->_fault('shipment_not_exists', "Shipment #{$shipmentIncrementId} does not exist.");
+                throw new Exception("Shipment #{$shipmentIncrementId} does not exist.");
+            }
+            if ($shipment->getOrderId() != $order->getId()) {
+                throw new Exception("Shipment #{$shipmentIncrementId} does not belong to Order #{$orderIncrementId}.");
             }
 
-            if ($shipment->getOrderId() != $order->getId()) {
-                $this->_fault('invalid_data', "Shipment #{$shipmentIncrementId} does not belong to Order #{$orderIncrementId}.");
+            foreach ($shipment->getAllItems() as $shipmentItem) {
+                $orderItem = $order->getItemsCollection()->getItemById($shipmentItem->getOrderItemId());
+                $newQtyShipped = max(0, $orderItem->getQtyShipped() - $shipmentItem->getQty());
+                $orderItem->setQtyShipped($newQtyShipped);
+                $orderItem->setLockedDoShip(false);
             }
 
             $shipment->delete();
-            $comment = sprintf('Reverted shipment #%s', $shipmentIncrementId);
-            $order->setData('state', Mage_Sales_Model_Order::STATE_PROCESSING);
-            $order->addStatusHistoryComment($comment, 'submitted')
-                ->setIsCustomerNotified(false)
-                ->save();
+            $shipments = $order->getShipmentsCollection();
+
+            if ($shipments->count() > 0) {
+                throw new Exception('Order has other shipments and cannot be fully reverted.');
+            }
+
+            $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, 'ready_to_ship', "Shipment #{$shipmentIncrementId} deleted.");
+            $order->save();
         } catch (Exception $e) {
             $this->_fault('revert_failed', 'Failed to revert shipment: ' . $e->getMessage());
         }

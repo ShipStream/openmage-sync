@@ -159,7 +159,6 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
      */
     public function addTrackingNumbers($shipmentIncrementId, array $data)
     {
-        /** @var $shipment Mage_Sales_Model_Order_Shipment */
         $shipment = Mage::getModel('sales/order_shipment')->loadByIncrementId($shipmentIncrementId);
         if ( ! $shipment->getId()) {
             $this->_fault('not_exists', "Shipment with increment ID '{$shipmentIncrementId}' does not exist.");
@@ -227,13 +226,13 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
             $shipment = Mage::getModel('sales/order_shipment')->loadByIncrementId($shipmentIncrementId);
 
             if (!$order->getId()) {
-                throw new Exception("Order #{$orderIncrementId} does not exist.");
+                $this->_fault('order_not_exists', "Order #{$orderIncrementId} does not exist.");
             }
             if (!$shipment->getId()) {
-                throw new Exception("Shipment #{$shipmentIncrementId} does not exist.");
+                $this->_fault('not_exists', "Shipment #{$shipmentIncrementId} does not exist.");
             }
             if ($shipment->getOrderId() != $order->getId()) {
-                throw new Exception("Shipment #{$shipmentIncrementId} does not belong to Order #{$orderIncrementId}.");
+                $this->_fault('data_invalid', "Shipment #{$shipmentIncrementId} does not belong to Order #{$orderIncrementId}.");
             }
 
             foreach ($shipment->getAllItems() as $shipmentItem) {
@@ -252,8 +251,10 @@ class ShipStream_Sync_Model_Order_Shipment_Api extends Mage_Sales_Model_Order_Sh
 
             $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, 'ready_to_ship', "Shipment #{$shipmentIncrementId} deleted.");
             $order->save();
-        } catch (Exception $e) {
-            $this->_fault('revert_failed', 'Failed to revert shipment: ' . $e->getMessage());
+        } catch (Mage_Api_Exception $e) {
+            throw $e;
+        } catch (Mage_Core_Exception $e) {
+            $this->_fault('failed', $e->getMessage());
         }
 
         return true;

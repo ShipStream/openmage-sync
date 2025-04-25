@@ -53,6 +53,10 @@
                         <title>Create shipment from ShipStream data</title>
                         <acl>shipstream</acl>
                     </createWithTracking>
+                    <addTrackingNumbers translate="title" module="shipstream">
+                        <title>Add tracking numbers from ShipStream data</title>
+                        <acl>shipstream</acl>
+                    </addTrackingNumbers>
                 </methods>
                 <faults module="shipstream">
                     <not_exists>
@@ -67,6 +71,10 @@
                         <code>103</code>
                         <message>Requested order does not exist</message>
                     </order_not_exists>
+                    <failed>
+                        <code>104</code>
+                        <message>The operation failed. Details in error message</message>
+                    </failed>
                 </faults>
             </shipstream_order_shipment>
             <shipstream translate="title" module="shipstream">
